@@ -125,6 +125,8 @@ function helper::try {
     local catch_error; catch_error=$(env::get_or_empty "CATCH_ERROR")
     if [ ${status} -ne 0 ] && [ ! -z "${catch_error}" ]; then
       return 0
+    else
+      exit ${status}
     fi
   fi
   return ${status}
