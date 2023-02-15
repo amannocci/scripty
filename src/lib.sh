@@ -5,13 +5,13 @@ set -eo pipefail
 trap 's=$?; echo >&2 "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
 # Constants
-readonly SCRIPTY_VERSION="1.0.0"
+readonly SCRIPTY_VERSION="1.0.1"
 
 # Found current script directory
-readonly RELATIVE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+RELATIVE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 # Found project directory
-readonly BASE_PROJECT="$(dirname "${RELATIVE_DIR}")"
+BASE_PROJECT="$(dirname "${RELATIVE_DIR}")"
 
 #######################################
 # Log an action.
@@ -82,6 +82,7 @@ function helper::print_to_hex {
 # Execute a command with arguments.
 # Globals:
 #   SILENT_STDOUT
+#   SILENT_STDERR
 # Arguments:
 #   ${@}: Any arguments.
 # Returns:
@@ -89,13 +90,18 @@ function helper::print_to_hex {
 #######################################
 function helper::exec {
   local silent_stdout; silent_stdout=$(env::get_or_empty "SILENT_STDOUT")
+  local silent_stderr; silent_stderr=$(env::get_or_empty "SILENT_STDERR")
   local err_exit_ctx=$(shopt -o errexit)
 
   set +e
-  if [ -z "${silent_stdout}" ]; then
-    ${@}
+  if [ -z "${silent_stdout}" ] && [ -z "${silent_stderr}" ]; then
+    "${@}"
+  elif [ ! -z "${silent_stdout}" ] && [ ! -z "${silent_stderr}" ]; then
+    "${@}" &> /dev/null
+  elif [ -z "${silent_stdout}" ] && [ ! -z "${silent_stderr}" ]; then
+    "${@}" 2> /dev/null
   else
-    ${@} > /dev/null
+    "${@}" > /dev/null
   fi
   local status=$?
   if [ $(echo "${err_exit_ctx}" | grep "on") ]; then
